@@ -2,319 +2,76 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>ICMU Membership Card Manager</title>
+    <title>ICMU | Card Manager</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Montserrat', sans-serif; background: #f4f7f6; padding-top: 80px; color: #333; }
-        .navbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: 100%; height: 80px; background: #ffffff; padding: 0 40px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-bottom: 3px solid #1ca65a; position: fixed; top: 0; left: 0; z-index: 100; }
-        .nav-left { display: flex; flex-direction: column; justify-content: center; line-height: 1.1; }
-        .nav-left p { font-size: 10px; letter-spacing: 1.5px; color: #888; font-weight: 700; text-transform: uppercase; margin: 0; }
-        .nav-left h1 { font-size: 16px; font-weight: 800; color: #1ca65a; letter-spacing: 0.5px; margin: 0; }
-        .nav-center { display: flex; background: #f0f2f1; padding: 6px; border-radius: 14px; gap: 5px; }
-        .nav-center button { padding: 10px 18px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.3s; font-size: 12px; background: transparent; color: #666; }
-        .nav-center button.active { background: #1ca65a; color: #fff; box-shadow: 0 4px 10px rgba(28,166,90,0.25); }
-        .nav-right { display: flex; align-items: center; justify-content: flex-end; gap: 0; } 
-        .nav-right img { height: 55px; display: block; }
-        .container { display: flex; gap: 40px; flex-wrap: wrap; justify-content: center; padding: 20px 40px; max-width: 1440px; margin: 0 auto; }
-        .form-section { flex: 0 0 420px; background: #ffffff; border-radius: 24px; padding: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04); }
-        .form-section h2 { margin-bottom: 20px; color: #1ca65a; font-weight: 800; font-size: 18px; border-left: 4px solid #1ca65a; padding-left: 12px; }
-        .drop-zone { border: 2px dashed #1ca65a; border-radius: 12px; padding: 25px; text-align: center; color: #1ca65a; cursor: pointer; transition: 0.3s; margin-bottom: 15px; background: #f9fbf9; }
-        .drop-zone.drag-over { background: #e9f5ee; transform: scale(0.98); }
+        :root { --bg: #0a0c0b; --card: #131816; --primary: #1ca65a; --border: rgba(255,255,255,0.1); }
+        body { font-family: 'Montserrat', sans-serif; background: var(--bg); color: white; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        
+        .sidebar { width: 280px; background: #0d110f; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 30px 20px; }
+        .logo-section { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; }
+        
+        .main-container { flex: 1; padding: 40px; overflow-y: auto; display: grid; grid-template-columns: 400px 1fr; gap: 40px; }
+        
+        .control-panel { background: var(--card); padding: 30px; border-radius: 24px; border: 1px solid var(--border); }
         .input-group { margin-bottom: 15px; }
-        .input-group label { display: block; font-size: 10px; font-weight: 700; color: #999; margin-bottom: 5px; text-transform: uppercase; }
-        input[type=text], input[type=url] { width: 100%; padding: 12px 16px; border-radius: 12px; border: 2px solid #edf0ee; outline: none; font-size: 13px; font-family: inherit; font-weight: 600; background: #f9fbf9; }
-        .member-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 5px; }
-        .select-all-label { font-size: 11px; font-weight: 700; color: #1ca65a; cursor: pointer; display: flex; align-items: center; gap: 5px; }
-        .member-selector { border: 1px solid #eee; border-radius: 12px; max-height: 220px; overflow-y: auto; margin-bottom: 15px; background: #fff; }
-        .member-item { display: flex; align-items: center; padding: 10px; gap: 10px; border-bottom: 1px solid #f9f9f9; font-size: 12px; cursor: pointer; }
-        .member-item.active-preview { background: #e9f5ee !important; border-left: 4px solid #1ca65a; color: #1ca65a; font-weight: 700; }
-        .status-bar { display: flex; justify-content: space-between; margin-bottom: 10px; }
-        .timer-badge { font-size: 9px; background: #f0f2f1; color: #1ca65a; padding: 4px 10px; border-radius: 6px; font-weight: 700; }
-        .update-badge { font-size: 9px; background: #fff3e0; color: #ef6c00; padding: 4px 10px; border-radius: 6px; font-weight: 700; }
-        .button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px; }
-        .btn { padding: 10px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.3s; font-size: 10px; text-transform: uppercase; }
-        .btn-bulk { background: #1ca65a; color: #fff; }
-        .btn-single { background: #fff; color: #1ca65a; border: 2px solid #1ca65a; }
-        .btn:disabled { opacity: 0.15; cursor: not-allowed; filter: grayscale(1); }
-        .preview-section { flex: 1; min-width: 500px; max-width: 850px; }
-        .preview-section canvas { width: 100%; border-radius: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.1); border: 1px solid #ddd; }
-        .hidden { display: none; }
+        .input-group label { font-size: 10px; color: #888; font-weight: 700; display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 12px; background: #000; border: 1px solid var(--border); border-radius: 10px; color: white; outline: none; }
+        
+        .btn { padding: 12px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; width: 100%; margin-top: 10px; }
+        .btn-green { background: var(--primary); color: white; }
+        
+        #previewCanvas { width: 100%; border-radius: 15px; border: 1px solid var(--primary); box-shadow: 0 0 30px rgba(28, 166, 90, 0.2); }
     </style>
 </head>
 <body>
 
-<div class="navbar">
-    <div class="nav-left"><p>Isipathana College Media Unit</p><h1>MEMBERSHIP CARD MANAGER</h1></div>
-    <div class="nav-center">
-        <button id="tab-manual" class="active" onclick="switchTab('manual')">Manual</button>
-        <button id="tab-csv" onclick="switchTab('csv')">CSV File</button>
-        <button id="tab-sheet" onclick="switchTab('sheet')">Google Sheet</button>
-    </div>
-    <div class="nav-right"><img src="ic-logo.png" alt="Logo"><img src="icmu-logo.png" alt="Logo"></div>
-</div>
+    <nav class="sidebar">
+        <div class="logo-section"><img src="icmu-logo.png" height="40"> <span style="font-weight:800; font-size:14px;">CARD MANAGER</span></div>
+        <a href="admin.html" style="color:var(--primary); text-decoration:none; font-size:14px;"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
+    </nav>
 
-<div class="container">
-    <div class="form-section" id="manualSection">
-        <h2>Manual Entry</h2>
-        <div class="input-group"><label>Full Name</label><input type="text" id="nameInput" oninput="updatePreview()"></div>
-        <div class="input-group"><label>Index No</label><input type="text" id="indexInput" oninput="updatePreview()"></div>
-        <div class="input-group"><label>Reg No</label><input type="text" id="regInput" oninput="updatePreview()"></div>
-        <div class="button-grid">
-            <button class="btn btn-single" onclick="downloadSingle('png')">PNG</button>
-            <button class="btn btn-single" onclick="downloadSingle('pdf')">PDF</button>
+    <div class="main-container">
+        <div class="control-panel">
+            <h2 style="color:var(--primary); margin-top:0;">Generator</h2>
+            <div class="input-group"><label>FULL NAME</label><input type="text" id="nameInput" oninput="update()" placeholder="Enter Name"></div>
+            <div class="input-group"><label>INDEX NO</label><input type="text" id="indexInput" oninput="update()" placeholder="0000"></div>
+            <div class="input-group"><label>REG NO</label><input type="text" id="regInput" oninput="update()" placeholder="00M000"></div>
+            
+            <button class="btn btn-green" onclick="download('png')">DOWNLOAD PNG</button>
+            <button class="btn" style="background:#222; color:white;" onclick="download('pdf')">EXPORT PDF</button>
+        </div>
+
+        <div class="preview-panel">
+            <canvas id="previewCanvas" width="1016" height="638"></canvas>
         </div>
     </div>
 
-    <div class="form-section hidden" id="csvSection">
-        <h2>Upload CSV</h2>
-        <div id="dropZone" class="drop-zone" onclick="document.getElementById('csvFile').click()">
-            <p style="font-size:12px; font-weight:700">Drag & Drop CSV or Click to Browse</p>
-            <input type="file" id="csvFile" accept=".csv" class="hidden" onchange="handleFile(this.files[0])">
-        </div>
-        <div id="csvControls" class="hidden">
-            <div class="member-header"><label class="select-all-label"><input type="checkbox" id="selectAllCSV" onclick="toggleAll('CSV')"> Select All</label></div>
-            <div id="memberListCSV" class="member-selector"></div>
-            <div class="button-grid">
-                <button id="sPngCSV" class="btn btn-single" onclick="downloadSingle('png')" disabled>PNG</button>
-                <button id="sPdfCSV" class="btn btn-single" onclick="downloadSingle('pdf')" disabled>PDF</button>
-                <button id="bPngCSV" class="btn btn-bulk" onclick="bulkAction('png')" disabled>Bulk PNG</button>
-                <button id="bPdfCSV" class="btn btn-bulk" onclick="bulkAction('pdf')" disabled>Bulk PDF</button>
-            </div>
-        </div>
-    </div>
+    <script>
+        const canvas = document.getElementById("previewCanvas");
+        const ctx = canvas.getContext("2d");
+        const logoA = new Image(); logoA.src = "ic-logo.png";
+        const logoB = new Image(); logoB.src = "icmu-logo.png";
 
-    <div class="form-section hidden" id="sheetSection">
-        <h2>Live Google Sheet</h2>
-        <div class="input-group"><label>Published CSV URL</label><input type="url" id="sheetUrl" placeholder="Enter published CSV link..."></div>
-        <button class="btn btn-bulk" style="width:100%; margin-bottom:15px;" onclick="fetchSheetData()">Connect & Sync</button>
-        <div id="sheetControls" class="hidden">
-            <div class="status-bar"><span class="timer-badge">Auto-refresh: 1m</span><span class="update-badge" id="lastUpdate">Last Updated: Never</span></div>
-            <div class="member-header"><label class="select-all-label"><input type="checkbox" id="selectAllSheet" onclick="toggleAll('Sheet')"> Select All</label></div>
-            <div id="memberListSheet" class="member-selector"></div>
-            <div class="button-grid">
-                <button id="sPngSheet" class="btn btn-single" onclick="downloadSingle('png')" disabled>PNG</button>
-                <button id="sPdfSheet" class="btn btn-single" onclick="downloadSingle('pdf')" disabled>PDF</button>
-                <button id="bPngSheet" class="btn btn-bulk" onclick="bulkAction('png')" disabled>Bulk PNG</button>
-                <button id="bPdfSheet" class="btn btn-bulk" onclick="bulkAction('pdf')" disabled>Bulk PDF</button>
-            </div>
-        </div>
-    </div>
-    <div class="preview-section"><canvas id="previewCanvas" width="1016" height="638"></canvas></div>
-</div>
+        function update() { draw(ctx, document.getElementById('nameInput').value, document.getElementById('indexInput').value, document.getElementById('regInput').value); }
 
-<canvas id="hiddenCanvas" width="1016" height="638" class="hidden"></canvas>
-
-<script>
-    const previewCanvas = document.getElementById("previewCanvas");
-    const previewCtx = previewCanvas.getContext("2d");
-    const hiddenCanvas = document.getElementById("hiddenCanvas");
-    const hiddenCtx = hiddenCanvas.getContext("2d");
-    const logoA = new Image(); logoA.src = "ic-logo.png";
-    const logoB = new Image(); logoB.src = "icmu-logo.png";
-    let csvData = [];
-    let selectedIdx = -1;
-    let refreshInterval = null;
-
-    const dropZone = document.getElementById('dropZone');
-    ['dragover', 'drop'].forEach(evt => dropZone.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); }));
-    dropZone.addEventListener('dragover', () => dropZone.classList.add('drag-over'));
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-    dropZone.addEventListener('drop', e => { dropZone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
-
-    window.onload = () => { setTimeout(() => drawCard(previewCtx), 500); };
-
-    function switchTab(tab) {
-        ['manual', 'csv', 'sheet'].forEach(t => {
-            document.getElementById(t + 'Section').classList.toggle('hidden', t !== tab);
-            document.getElementById('tab-' + t).classList.toggle('active', t === tab);
-        });
-        if (tab !== 'sheet') clearInterval(refreshInterval);
-    }
-
-    async function fetchSheetData() {
-        const url = document.getElementById('sheetUrl').value;
-        if (!url) return;
-        const fetchData = async () => {
-            try {
-                const response = await fetch(url);
-                const data = await response.text();
-                parseCSV(data, 'memberListSheet', 'sheetControls');
-                const now = new Date();
-                document.getElementById('lastUpdate').innerText = `Last Updated: ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
-            } catch (e) { console.error("Sync failed"); }
-        };
-        fetchData();
-        clearInterval(refreshInterval);
-        refreshInterval = setInterval(fetchData, 60000);
-    }
-
-    function parseCSV(text, listId, controlId) {
-        const lines = text.split('\n').filter(l => l.trim() !== '').map(l => l.split(','));
-        if(lines.length < 2) return;
-        const headers = lines[0].map(h => h.trim().toLowerCase());
-        const iN = headers.indexOf("name"), iI = headers.indexOf("index no"), iR = headers.indexOf("reg no");
-        csvData = []; const list = document.getElementById(listId); list.innerHTML = '';
-        document.getElementById(controlId).classList.remove('hidden');
-        lines.slice(1).forEach((cols, i) => {
-            if (cols.length < 3) return;
-            const m = { name: cols[iN], index: cols[iI], reg: cols[iR], sel: false };
-            csvData.push(m);
-            const d = document.createElement('div'); d.className = 'member-item';
-            d.innerHTML = `<input type="checkbox" class="mem-check" onclick="event.stopPropagation(); toggleSelection(${i})"> <span>${m.reg} - ${m.name}</span>`;
-            d.onclick = () => { 
-                selectedIdx = i; 
-                document.querySelectorAll('.member-item').forEach(el => el.classList.remove('active-preview'));
-                d.classList.add('active-preview');
-                drawCard(previewCtx, m.name, m.index, m.reg); 
-                refreshButtonStates(); 
-            };
-            list.appendChild(d);
-        });
-        refreshButtonStates();
-    }
-
-    function toggleAll(type) {
-        const checked = document.getElementById('selectAll' + type).checked;
-        const checkboxes = document.querySelectorAll('.mem-check');
-        checkboxes.forEach((cb, i) => { cb.checked = checked; csvData[i].sel = checked; });
-        refreshButtonStates();
-    }
-
-    function toggleSelection(i) { csvData[i].sel = !csvData[i].sel; refreshButtonStates(); }
-
-    function refreshButtonStates() {
-        const checkedCount = csvData.filter(m => m.sel).length;
-        const hasPreview = selectedIdx !== -1;
-        ['CSV', 'Sheet'].forEach(sfx => {
-            const sPng = document.getElementById('sPng' + sfx), sPdf = document.getElementById('sPdf' + sfx);
-            const bPng = document.getElementById('bPng' + sfx), bPdf = document.getElementById('bPdf' + sfx);
-            if (!sPng) return;
-            const allowSingle = (checkedCount === 0 && hasPreview);
-            sPng.disabled = !allowSingle; sPdf.disabled = !allowSingle;
-            const allowBulk = (checkedCount > 0);
-            bPng.disabled = !allowBulk; bPdf.disabled = !allowBulk;
-        });
-    }
-
-    function getWrapCount(ctx, text, maxWidth) {
-        const words = text.split(' ');
-        let line = ''; let count = 0;
-        for (let n = 0; n < words.length; n++) {
-            let testLine = line + words[n] + ' ';
-            if (ctx.measureText(testLine).width > maxWidth && n > 0) { count++; line = words[n] + ' '; }
-            else { line = testLine; }
+        async function draw(c, name, idx, reg) {
+            c.fillStyle = "#000"; c.fillRect(0, 0, 1016, 638);
+            c.fillStyle = "#fff"; c.font = "700 42px Montserrat"; c.fillText("MEMBERSHIP CARD", 50, 100);
+            c.drawImage(logoA, 800, 50, 60, 60); c.drawImage(logoB, 880, 50, 60, 60);
+            c.fillStyle = "#fff"; c.font = "600 32px Montserrat";
+            c.fillText((name || "FULL NAME").toUpperCase(), 380, 260);
+            c.fillText(idx || "0000", 380, 380);
+            c.fillText(reg || "00M000", 380, 500);
+            // QR Code logic here...
         }
-        return count;
-    }
-
-    function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-        const words = text.split(' ');
-        let line = '';
-        for (let n = 0; n < words.length; n++) {
-            let testLine = line + words[n] + ' ';
-            if (ctx.measureText(testLine).width > maxWidth && n > 0) {
-                ctx.fillText(line.trim(), x, y);
-                line = words[n] + ' '; y += lineHeight;
-            } else { line = testLine; }
-        }
-        ctx.fillText(line.trim(), x, y);
-    }
-
-    async function drawCard(ctx, name, idx, reg) {
-        const W = 1016, H = 638, M = 50;
-        ctx.clearRect(0, 0, W, H);
-        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
-        ctx.fillStyle = "#fff"; ctx.font = "600 17px Montserrat";
-        ctx.fillText("ISIPATHANA COLLEGE MEDIA UNIT", M, M + 17);
-        ctx.font = "700 42px Montserrat"; ctx.fillText("MEMBERSHIP CARD", M, M + 55);
-        if (logoA.complete && logoB.complete) {
-            const h = 61, aW = logoA.width * (h / logoA.height), bW = logoB.width * (h / logoB.height);
-            ctx.drawImage(logoA, W - M - aW - bW, M, aW, h); ctx.drawImage(logoB, W - M - bW, M, bW, h);
-        }
-        ctx.font = "italic 400 12.5px Montserrat"; ctx.fillText("NO SACRIFICE. NO VICTORY – SINCE 1999", M, H - M);
-        const headingBottom = M + 85;
-        const boxW = 295, boxH = 380, availableHeight = (H - 65) - headingBottom;
-        const boxY = (headingBottom + (availableHeight - boxH) / 2) - 15; const boxX = M;
-        ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.roundRect(boxX, boxY, boxW, boxH, 10); ctx.fill();
-        const contentX = boxX + boxW + 45, maxW = W - contentX - M, uName = (name || "FULL NAME").toUpperCase();
-        const lh = 38, labelToValue = 35, rowGap = 40;
-        const wrapCount = getWrapCount(ctx, uName, maxW);
-        const nameH = 17 + labelToValue + (wrapCount * lh), indexH = 17 + labelToValue, regH = 17 + labelToValue;
-        const totalH = nameH + indexH + regH + (rowGap * 2);
-        const boxCenterY = boxY + (boxH / 2);
-        let currentY = boxCenterY - (totalH / 2) + 12;
-
-        ctx.fillStyle = "#fff"; ctx.font = "500 17px Montserrat"; ctx.fillText("NAME", contentX, currentY);
-        ctx.font = "700 34px Montserrat"; wrapText(ctx, uName, contentX, currentY + labelToValue, maxW, lh);
-        currentY += nameH + rowGap;
-        ctx.font = "500 17px Montserrat"; ctx.fillText("INDEX NO", contentX, currentY);
-        ctx.font = "700 34px Montserrat"; ctx.fillText(idx || "00000", contentX, currentY + labelToValue);
-        currentY += indexH + rowGap;
-        ctx.font = "500 17px Montserrat"; ctx.fillText("REGISTRATION NO", contentX, currentY);
-        ctx.font = "700 34px Montserrat"; ctx.fillText(reg || "00M000", contentX, currentY + labelToValue);
-
-        const qr = await getQRImage(reg || "00M000");
-        if (qr) {
-            const qI = new Image(); qI.src = qr; await new Promise(r => qI.onload = r);
-            ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.roundRect(W - M - 128, H - M - 128, 138, 138, 10); ctx.fill();
-            ctx.drawImage(qI, W - M - 118, H - M - 118, 118, 118);
-        }
-    }
-
-    async function getQRImage(text) {
-        return new Promise(res => {
-            const d = document.createElement("div"); new QRCode(d, { text: text || " ", width: 118, height: 118 });
-            setTimeout(() => { const i = d.querySelector("img"); res(i ? i.src : ""); }, 100);
-        });
-    }
-
-    async function downloadSingle(type) {
-        let name, reg;
-        const activeTab = document.querySelector('.nav-center button.active').id;
-        if(activeTab === 'tab-manual') {
-            name = document.getElementById('nameInput').value || "FULL NAME";
-            reg = document.getElementById('regInput').value || "00M000";
-        } else {
-            const m = csvData[selectedIdx];
-            name = m.name; reg = m.reg;
-        }
-        const fileName = `${reg}-memcard`;
-        if(type === 'png') {
-            const a = document.createElement("a"); a.href = previewCanvas.toDataURL("image/png"); a.download = `${fileName}.png`; a.click();
-        } else {
-            const { jsPDF } = window.jspdf; const doc = new jsPDF('l', 'px', [1016, 638]);
-            doc.addImage(previewCanvas.toDataURL("image/png"), 'PNG', 0, 0, 1016, 638); doc.save(`${fileName}.pdf`);
-        }
-    }
-
-    async function bulkAction(fmt) {
-        const zip = new JSZip(); const { jsPDF } = window.jspdf;
-        const selected = csvData.filter(m => m.sel);
-        for (let m of selected) {
-            await drawCard(hiddenCtx, m.name, m.index, m.reg);
-            const fileName = `${m.reg}-memcard`;
-            if(fmt === 'png'){
-                const data = hiddenCanvas.toDataURL("image/png").split(',')[1];
-                zip.file(`${fileName}.png`, data, {base64: true});
-            } else {
-                const doc = new jsPDF('l', 'px', [1016, 638]);
-                doc.addImage(hiddenCanvas.toDataURL("image/png"), 'PNG', 0, 0, 1016, 638);
-                zip.file(`${fileName}.pdf`, doc.output('blob'));
-            }
-        }
-        const now = new Date();
-        const ts = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')}, ${now.getHours().toString().padStart(2,'0')}-${now.getMinutes().toString().padStart(2,'0')}-${now.getSeconds().toString().padStart(2,'0')}`;
-        zip.generateAsync({type:"blob"}).then(c => { const a = document.createElement('a'); a.href = URL.createObjectURL(c); a.download = `icmu-memcards (${ts}).zip`; a.click(); });
-    }
-
-    function updatePreview() { drawCard(previewCtx, document.getElementById('nameInput').value, document.getElementById('indexInput').value, document.getElementById('regInput').value); }
-    function handleFile(file) { if(file) { const reader = new FileReader(); reader.onload = (e) => parseCSV(e.target.result, 'memberListCSV', 'csvControls'); reader.readAsText(file); } }
-</script>
+        window.onload = update;
+    </script>
 </body>
 </html>
