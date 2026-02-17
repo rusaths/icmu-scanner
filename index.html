@@ -2,26 +2,41 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ICMU Mobile Scanner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>ICMU Mobile Scanner PRO</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
     <script src="https://unpkg.com/html5-qrcode"></script>
+
     <style>
-        body { font-family: 'Montserrat', sans-serif; background: #1a1a1a; color: white; margin: 0; display: flex; flex-direction: column; align-items: center; height: 100vh; }
-        .header { background: #1ca65a; width: 100%; padding: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        #reader { width: 90%; max-width: 400px; margin-top: 30px; border-radius: 20px; overflow: hidden; border: 4px solid #333; }
-        #result-popup { position: fixed; bottom: 30px; background: #1ca65a; padding: 15px 30px; border-radius: 50px; font-weight: 700; transform: translateY(100px); transition: 0.4s; opacity: 0; z-index: 1000; }
+        body { font-family: 'Montserrat', sans-serif; background: #121212; color: white; margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        .header { background: #1ca65a; width: 100%; padding: 15px 0; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.4); z-index: 10; }
+        .header h1 { margin: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 2px; }
+        
+        #reader { width: 95%; max-width: 450px; margin-top: 20px; border-radius: 15px; overflow: hidden; border: 3px solid #333; background: #000; }
+        
+        /* Success Popup */
+        #result-popup { position: fixed; bottom: 40px; background: #1ca65a; color: white; padding: 15px 35px; border-radius: 50px; font-weight: 700; transform: translateY(150px); transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0; z-index: 100; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
         #result-popup.show { transform: translateY(0); opacity: 1; }
+        
+        .footer-note { margin-top: auto; padding-bottom: 20px; color: #666; font-size: 12px; }
     </style>
 </head>
 <body>
+
     <div class="header"><h1>ICMU GATE SCANNER</h1></div>
+
     <div id="reader"></div>
+    
     <div id="result-popup">SCANNED SUCCESSFULLY</div>
 
+    <div class="footer-note">Ensure HTTPS is enabled for Camera access</div>
+
 <script>
+    // 1. YOUR FIREBASE CONFIG
     const firebaseConfig = {
       apiKey: "AIzaSyABiLBG8RUyJtpHebMlWHejr7Xgzysrwlw",
       authDomain: "icmu-scanner.firebaseapp.com",
@@ -35,23 +50,57 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // 2. ELECTRONIC BEEP GENERATOR (No file needed)
+    function playBeep() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.type = 'square';
+            oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Pitch
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // Volume
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.1); // Duration 100ms
+        } catch (e) { console.warn("Audio error:", e); }
+    }
+
+    // 3. SCAN SUCCESS HANDLER
+    let lastScanTime = 0;
     function onScanSuccess(decodedText) {
-        // Send Registration No to PC Dashboard via Firebase
+        const now = Date.now();
+        if (now - lastScanTime < 2000) return; // Prevent double-scans within 2 seconds
+        lastScanTime = now;
+
+        playBeep();
+        if (navigator.vibrate) navigator.vibrate(100);
+
+        // Update Firebase - This triggers the PC Dashboard
         db.ref('last_scan').set(decodedText);
         
-        // Vibrate phone
-        if (navigator.vibrate) navigator.vibrate(100);
-        
-        // Visual alert
+        // Show Feedback
         const popup = document.getElementById('result-popup');
         popup.innerText = "SCANNED: " + decodedText;
         popup.classList.add('show');
         setTimeout(() => popup.classList.remove('show'), 2000);
     }
 
-    let html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 15, qrbox: 250 });
+    // 4. INITIALIZE SCANNER
+    const html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader", 
+        { 
+            fps: 20, 
+            qrbox: {width: 250, height: 250},
+            aspectRatio: 1.0,
+            showTorchButtonIfSupported: true 
+        }
+    );
+    
     html5QrcodeScanner.render(onScanSuccess);
 </script>
 </body>
-
 </html>
